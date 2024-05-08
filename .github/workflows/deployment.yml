@@ -1,0 +1,35 @@
+name: Sentry hook deployment
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  LANGUAGE: ${{ vars.LANGUAGE }}
+  TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+  TELEGRAM_GROUP_ID: ${{ vars.TELEGRAM_GROUP_ID }}
+  TELEGRAM_TOPIC_ID: ${{ vars.TELEGRAM_TOPIC_ID }}
+  SENTRY_INTEGRATION_TOKEN: ${{ secrets.SENTRY_INTEGRATION_TOKEN }}
+  SENTRY_ORGANIZATION_SLUG: ${{ vars.SENTRY_ORGANIZATION_SLUG }}
+
+jobs:
+  build:
+    runs-on: [self-hosted, Linux, beaver]
+    steps:
+      - run: echo admin | sudo -S chmod +w -R ${GITHUB_WORKSPACE}; sudo rm -rf ${GITHUB_WORKSPACE}/*;
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.12.2
+      - run: |
+          echo "LANGUAGE=${{ env.LANGUAGE }}" >> .env
+          echo "TELEGRAM_BOT_TOKEN=${{ env.TELEGRAM_BOT_TOKEN }}" >> .env
+          echo "TELEGRAM_GROUP_ID=${{ env.TELEGRAM_GROUP_ID }}" >> .env
+          echo "TELEGRAM_TOPIC_ID=${{ env.TELEGRAM_TOPIC_ID }}" >> .env
+          echo "SENTRY_INTEGRATION_TOKEN=${{ env.SENTRY_INTEGRATION_TOKEN }}" >> .env
+          echo "SENTRY_ORGANIZATION_SLUG=${{ env.SENTRY_ORGANIZATION_SLUG }}" >> .env
+      - run: docker compose -f docker-compose-prod.yml down --rmi local
+      - run: docker compose -f docker-compose-prod.yml up -d
